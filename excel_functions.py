@@ -163,7 +163,9 @@ def select_columns_from_known_source(df, needed_columns, source):
 
     available_name_of_needed_columns_dict = known_source_relevenat_columns[source]
     columns_to_keep = list(available_name_of_needed_columns_dict.keys())
-    df = df[columns_to_keep]
+    # Only keep columns that actually exist in the DataFrame
+    existing_columns = [col for col in columns_to_keep if col in df.columns]
+    df = df[existing_columns]
     df = df.rename(columns=available_name_of_needed_columns_dict)
 
     for col in needed_columns:
