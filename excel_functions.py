@@ -8,11 +8,12 @@ import tempfile
 from dateutil.parser import parse
 import datetime
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, date
 import copy
 import time
 import json
 import requests
+import decimal
 from mapping_data import known_sources, known_source_relevenat_columns, state_codes, state_mis_match_mapping, needed_columns
 from elasticsearch import Elasticsearch  # type: ignore
 
@@ -578,7 +579,10 @@ def parse_date(date, user_month):
 #     raise TypeError(f"Type {type(obj)} not serializable")
 
 def custom_serializer(obj):
-    if isinstance(obj, pd.Timestamp):
+    # Handle NaT (Not a Time) and NaN values
+    if pd.isna(obj):
+        return None
+    elif isinstance(obj, pd.Timestamp):
         return obj.isoformat()
     elif isinstance(obj, (datetime, date)):
         return obj.isoformat()
