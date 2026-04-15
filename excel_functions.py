@@ -334,7 +334,7 @@ def fill_missing_values(df):
   return df
 
 def create_place_of_origin_column(df):
-    df['place_of_origin'] = np.nan
+    df['place_of_origin'] = None
 
     for index, row in df.iterrows():
         supplier_gstin = row['GSTIN/UIN of Supplier']
@@ -356,7 +356,7 @@ def fill_place_of_supply_with_place_of_origin(df):
     return df
 
 def categorise_transactions(df):
-    df['transaction_type'] = np.nan
+    df['transaction_type'] = None
 
     for index, row in df.iterrows():
         gstin_of_recipient = row['GSTIN/UIN of Recipient']
