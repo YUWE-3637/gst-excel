@@ -175,6 +175,8 @@ def select_columns_from_known_source(df, needed_columns, source):
     return df
 
 def format_place_of_supply(df):
+    # Ensure Place Of Supply column can accept string values
+    df['Place Of Supply'] = df['Place Of Supply'].astype(object)
     for index, row in df.iterrows():
         place_of_supply = str(row['Place Of Supply'])
 
@@ -352,6 +354,8 @@ def create_place_of_origin_column(df):
     return df
 
 def fill_place_of_supply_with_place_of_origin(df):
+    # Ensure Place Of Supply column can accept string values
+    df['Place Of Supply'] = df['Place Of Supply'].astype(object)
     for index, row in df.iterrows():
         if pd.isna(row['Place Of Supply']):
             df.at[index, 'Place Of Supply'] = row['place_of_origin']
