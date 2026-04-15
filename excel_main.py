@@ -205,8 +205,8 @@ def excel_main():
 
             main_df['GSTIN/UIN of Supplier'].fillna('supplier gstin not available', inplace=True)
 
-            main_df['GSTIN/UIN of Supplier'] = main_df['GSTIN/UIN of Supplier'].astype(str).apply(lambda x: x[:15])
-            main_df['GSTIN/UIN of Recipient'] = main_df['GSTIN/UIN of Recipient'].astype(str).apply(lambda x: x[:15])
+            main_df['GSTIN/UIN of Supplier'] = main_df['GSTIN/UIN of Supplier'].astype(str).str[:15]
+            main_df['GSTIN/UIN of Recipient'] = main_df['GSTIN/UIN of Recipient'].astype(str).str[:15]
 
             main_df['Reverse Charge'] = 'N'
             main_df['Invoice Type'] = 'Regular B2B'
