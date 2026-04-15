@@ -1,0 +1,9 @@
+streamlit
+requests
+pandas
+numpy
+openpyxl
+xlrd
+watchdog
+xlsxwriter
+elasticsearch
