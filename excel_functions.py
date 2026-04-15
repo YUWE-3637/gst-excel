@@ -595,6 +595,23 @@ def custom_serializer(obj):
     raise TypeError(f"Type {type(obj)} not serializable")
 
 
+def sanitize_for_es(obj):
+    """Recursively sanitize dict/list for Elasticsearch by converting NaT/NaN to None"""
+    if isinstance(obj, dict):
+        return {k: sanitize_for_es(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_for_es(item) for item in obj]
+    elif pd.isna(obj):
+        return None
+    elif isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+    elif isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    elif isinstance(obj, (np.int64, np.int32, np.float64, np.float32)):
+        return obj.item()
+    else:
+        return obj
+
 def push_to_es(payload):
     
     elastic_url="https://elastic:NuwRaaWUktq5FM1QJZe6iexV@my-deployment-3eafc9.es.ap-south-1.aws.elastic-cloud.com:9243/#{@index_name}/_doc"
@@ -608,8 +625,11 @@ def push_to_es(payload):
     document_id = None
 
     try:
+        # Sanitize payload to handle NaT, NaN, and pandas types
+        sanitized_payload = sanitize_for_es(payload)
+        
         # Push data to Elasticsearch
-        response = es.index(index=index_name, id=document_id, document=payload)
+        response = es.index(index=index_name, id=document_id, document=sanitized_payload)
         return response
     except Exception as e:
         return {"error": str(e)}
