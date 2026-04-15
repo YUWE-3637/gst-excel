@@ -291,10 +291,14 @@ def excel_main():
                             "Sources": str(sources)
                         }
 
-                        short_payload = json.dumps(short_dict, default=custom_serializer)
-
-                        response = push_to_es(short_payload)
-                        st.write('First')
+                        # Push dict directly to Elasticsearch (not JSON string)
+                        response = push_to_es(short_dict)
+                        
+                        # Log the response for debugging
+                        if isinstance(response, dict) and "error" in response:
+                            st.error(f"Elasticsearch logging failed: {response['error']}")
+                        else:
+                            st.success(f"Log pushed to Elasticsearch successfully")
 
                         # Your final dictionary
                         final_dict = {
