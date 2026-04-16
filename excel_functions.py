@@ -163,8 +163,28 @@ def select_columns_from_known_source(df, needed_columns, source):
 
     available_name_of_needed_columns_dict = known_source_relevenat_columns[source]
     columns_to_keep = list(available_name_of_needed_columns_dict.keys())
+    
+    # Debug: Show actual columns in the DataFrame
+    st.write(f"**Columns found in uploaded file:**")
+    st.write(df.columns.tolist())
+    
     # Only keep columns that actually exist in the DataFrame
     existing_columns = [col for col in columns_to_keep if col in df.columns]
+    missing_columns = [col for col in columns_to_keep if col not in df.columns]
+    
+    # Warn user about missing columns
+    if missing_columns:
+        st.warning(f"⚠️ **Missing expected columns for '{source}' format:**")
+        st.write(missing_columns)
+        st.info(f"💡 **Tip:** Check if column names in your file match exactly (including spaces and capitalization)")
+    
+    # Show which columns were successfully mapped
+    if existing_columns:
+        st.success(f"✅ **Successfully mapped {len(existing_columns)} columns:**")
+        st.write(existing_columns)
+    else:
+        st.error(f"❌ **No columns matched!** Please check your file format or use 'Unknown Format' option.")
+    
     df = df[existing_columns]
     df = df.rename(columns=available_name_of_needed_columns_dict)
 
