@@ -8,12 +8,11 @@ import tempfile
 from dateutil.parser import parse
 import datetime
 from io import BytesIO
-from datetime import datetime, date
+from datetime import datetime
 import copy
 import time
 import json
 import requests
-import decimal
 from mapping_data import known_sources, known_source_relevenat_columns, state_codes, state_mis_match_mapping, needed_columns
 from elasticsearch import Elasticsearch  # type: ignore
 
@@ -579,10 +578,7 @@ def parse_date(date, user_month):
 #     raise TypeError(f"Type {type(obj)} not serializable")
 
 def custom_serializer(obj):
-    # Handle NaT (Not a Time) and NaN values
-    if pd.isna(obj):
-        return None
-    elif isinstance(obj, pd.Timestamp):
+    if isinstance(obj, pd.Timestamp):
         return obj.isoformat()
     elif isinstance(obj, (datetime, date)):
         return obj.isoformat()
@@ -594,23 +590,6 @@ def custom_serializer(obj):
         return str(obj)
     raise TypeError(f"Type {type(obj)} not serializable")
 
-
-def sanitize_for_es(obj):
-    """Recursively sanitize dict/list for Elasticsearch by converting NaT/NaN to None"""
-    if isinstance(obj, dict):
-        return {k: sanitize_for_es(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [sanitize_for_es(item) for item in obj]
-    elif pd.isna(obj):
-        return None
-    elif isinstance(obj, pd.Timestamp):
-        return obj.isoformat()
-    elif isinstance(obj, (datetime, date)):
-        return obj.isoformat()
-    elif isinstance(obj, (np.int64, np.int32, np.float64, np.float32)):
-        return obj.item()
-    else:
-        return obj
 
 def push_to_es(payload):
     
@@ -625,11 +604,8 @@ def push_to_es(payload):
     document_id = None
 
     try:
-        # Sanitize payload to handle NaT, NaN, and pandas types
-        sanitized_payload = sanitize_for_es(payload)
-        
         # Push data to Elasticsearch
-        response = es.index(index=index_name, id=document_id, document=sanitized_payload)
+        response = es.index(index=index_name, id=document_id, document=payload)
         return response
     except Exception as e:
         return {"error": str(e)}

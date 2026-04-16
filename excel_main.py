@@ -106,38 +106,30 @@ def excel_main():
                 
                 for sheet in selected_sheets:
                     unique_counter_for_key_names += 1
+                    df = excel_file.parse(sheet)
+                    is_known_source = st.checkbox(f"Is {sheet} from a known format?", key=f"{uploaded_file.name}_{sheet}_known", value=True)
                     
-                    try:
-                        df = excel_file.parse(sheet)
-                        st.write(f"✓ Read sheet '{sheet}' - {len(df)} rows")
-                        
-                        is_known_source = st.checkbox(f"Is {sheet} from a known format?", key=f"{uploaded_file.name}_{sheet}_known", value=True)
-                        
-                        if is_known_source:
-                            source = st.selectbox("Select the format", known_sources, index=0, key=f"{uploaded_file.name}_{sheet}_source")
+                    if is_known_source:
+                        source = st.selectbox("Select the format", known_sources, index=0, key=f"{uploaded_file.name}_{sheet}_source")
 
-                            if source == "Select an option":
-                                st.warning(f"⚠️ Please select a valid format for '{sheet}' to proceed.")
-                                continue  # Skip the rest of the loop until a valid selection is made
+                        if source == "Select an option":
+                            # st.warning(f"Please select a valid format for {sheet} to proceed.")
+                            continue  # Skip the rest of the loop until a valid selection is made
 
-                            st.write(f"✓ Selected format: {source}")
-                            sources.add(source)
-                            df = select_columns_from_known_source(df, needed_columns, source)
-                            st.write(f"✓ Processed '{sheet}' with known format - {len(df)} rows after column selection")
-                            df = fill_missing_supplier_gstins(df, unique_counter_for_key_names, sheet)
-                        else:
-                            df = select_columns_from_unknown_source(df, needed_columns, uploaded_file.name, sheet)
-                            st.write(f"✓ Processed '{sheet}' with unknown format - {len(df)} rows")
-                            df = fill_missing_supplier_gstins(df, unique_counter_for_key_names, sheet)
-                        
-                        if not df.empty:
-                            df = format_place_of_supply(df)
+
+                        sources.add(source)
+                        df = select_columns_from_known_source(df, needed_columns, source)
+                        df = fill_missing_supplier_gstins(df, unique_counter_for_key_names, sheet)
+                    else:
+                        df = select_columns_from_unknown_source(df, needed_columns, uploaded_file.name, sheet)
+                        df = fill_missing_supplier_gstins(df, unique_counter_for_key_names, sheet)
+                    
+                    if not df.empty:
+                        df = format_place_of_supply(df)
 
                         df = fill_missing_values(df)
                         df = create_place_of_origin_column(df)
                         df = fill_place_of_supply_with_place_of_origin(df)
-
-                        st.write(f"✓ Completed transformations for '{sheet}'")
 
                         taxable_value = df['Taxable Value'].sum()
                         tax_amount = df['Tax amount'].sum()
@@ -179,21 +171,10 @@ def excel_main():
 
 
                         all_dataframes.append(df)
-                        st.write(f"✓ Added '{sheet}' to processing queue")
-                        
-                    except Exception as e:
-                        st.error(f"❌ Error processing sheet '{sheet}': {str(e)}")
-                        st.error(f"Error type: {type(e).__name__}")
-                        import traceback
-                        st.code(traceback.format_exc())
 
         if all_dataframes:
-            st.success(f"✅ Successfully processed {len(all_dataframes)} sheet(s)")
             main_df = pd.concat(all_dataframes)
             main_df.reset_index(drop=True, inplace=True)
-            st.write(f"✓ Combined dataframe: {len(main_df)} total rows")
-        else:
-            st.warning("⚠️ No data was processed. Please check your sheet selections and formats.")
 
             # print(main_df)
             # st.write(main_df)
@@ -331,15 +312,19 @@ def excel_main():
                             "InputFile" : str(uploaded_files_dict)
                         }
 
-                        # Convert the dictionary to JSON using the custom serializer
+                        # Push detailed final_dict to Elasticsearch
+                        final_response = push_to_es(final_dict)
+                        
+                        # Log the response for debugging
+                        if isinstance(final_response, dict) and "error" in final_response:
+                            st.error(f"Detailed Elasticsearch logging failed: {final_response['error']}")
+                        else:
+                            st.success(f"Detailed log pushed to Elasticsearch successfully")
+
+                        # Convert the dictionary to JSON using the custom serializer for CRM endpoint
                         payload = json.dumps(final_dict, default=custom_serializer)
 
-                        print(payload)
-
-                        for i in range(20):
-                            print('')
-
-                        # Send the POST request with the JSON payload
+                        # Send the POST request with the JSON payload to CRM endpoint
                         url = 'https://crm.vakilsearch.com/es_data_capture'
 
                         headers = {
@@ -347,5 +332,9 @@ def excel_main():
                         }
 
                         # Send the POST request with the payload directly (not as a string)
-                        response = requests.post(url, data=payload, headers=headers)
-                        st.write('Second')
+                        crm_response = requests.post(url, data=payload, headers=headers)
+                        
+                        if crm_response.status_code == 200:
+                            st.success("Data sent to CRM endpoint successfully")
+                        else:
+                            st.warning(f"CRM endpoint returned status code: {crm_response.status_code}")
